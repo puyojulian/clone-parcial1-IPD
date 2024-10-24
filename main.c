@@ -26,7 +26,7 @@ int main(int argc, char* argv[]) {
     }
 
     // Deminimos la cantidad de hilos a usar en cada región paralela.
-    omp_set_num_threads(16);
+    omp_set_num_threads(100);
 
     filename = argv[1];
     // Cargar la imagen (no paralelizable)
@@ -91,7 +91,7 @@ void aplicarFiltro(int *imagen, int *imagenProcesada, int width, int height) {
 
     // Paralelizamos de manera sencilla haciéndo uso de los hilos indicados por el llamado al api desde main().
     // Aplico collapse con la intención de paralelizar ambos bucles externos y obtener mejor distribución del trabajo.
-    #pragma omp parallel for shared(imagen, imagenProcesada, width, height, Gx, Gy) collapse(2)
+    #pragma omp parallel for shared(imagen, imagenProcesada, width, height, Gx, Gy) schedule(dynamic)
     for (int y = 1; y < height - 1; y++) {
         for (int x = 1; x < width - 1; x++) {
             int sumX = 0;
@@ -114,8 +114,8 @@ void aplicarFiltro(int *imagen, int *imagenProcesada, int width, int height) {
 
 int calcularSumaPixeles(int *imagen, int width, int height) {
     int suma = 0;
-    // Causa un leve overhead, no es beneficioso en términos de mejora en rendimiento.
-    // #pragma omp parallel for reduction(+:suma) schedule(static)
+    // Causa un leve overhead; empeora el rendimiento independientemente del número de hilos.
+    #pragma omp parallel for reduction(+:suma) schedule(static)
     for (int i = 0; i < width * height; i++) {
         suma += imagen[i];
     }

@@ -17,29 +17,29 @@ Para comenzar, presento los datos recopilados (tiempos de ejecución en segundos
 - 0:05.98
 
 **OMP con Llamado Secuencial (optimizado con la bandera -O3 al compilar):**
-- ~~0:05.29~~ - *a eliminar*
-- 0:05.29
-- 0:05.26
-- 0:05.21
-- 0:05.27 \
-**Speedup:** (23.92/4)/(21.03/4) = 1.1374
+- ~~0:05.26~~ - *a eliminar*
+- 0:05.17
+- 0:05.12
+- 0:05.14
+- 0:05.19 \
+**Speedup:** (23.92/4)/(21.03/4) = 1.1600
 
 > El *speedup* se calcula dividiento el tiempo promedio secuencial sobre el tiempo promedio en paralelo. Considérese que cuando hablamos de tiempo de ejecución, entre menos en mejor.
 
-Esto representa una ganancia de rendimiento del 13.74%. Aunque puede parecer menos de lo esperado, hay que tener en cuenta que al tratarse de imágenes estámos muy dependientes de las operaciones de entrada y salida, además que todo el tiempo de ejecución también depende de los tiempos que se tomen [fromBin2PNG.py](fromBin2PNG.py) y [fromPNG2Bin.py](fromPNG2Bin.py) los cuales se ejecutan de manera secuencial. Por lo tanto, encontramos una mejora que no es sustancial y que se puede mejorar si consideramos que el llamado desde la consola o desde nuestro [all.sh](all.sh), podemos realizar el llamado de nuestro programa de manera paralela.
+Esto representa una ganancia de rendimiento del 16.00%. Aunque puede parecer menos de lo esperado, hay que tener en cuenta que al tratarse de imágenes estámos muy dependientes de las operaciones de entrada y salida, además que todo el tiempo de ejecución también depende de los tiempos que se tomen [fromBin2PNG.py](fromBin2PNG.py) y [fromPNG2Bin.py](fromPNG2Bin.py) los cuales se ejecutan de manera secuencial. Por lo tanto, encontramos una mejora que no es sustancial y que se puede mejorar si consideramos que el llamado desde la consola o desde nuestro [all.sh](all.sh), podemos realizar el llamado de nuestro programa de manera paralela.
 
 > En [all.sh](all.sh) encontrará comentada la implementación original como aquella correspondiente a la prueba anterior (sobre todas las imágenes en *images*), y estará sin comentario aquel script definitivo, el cual hace un llamado en paralelo según los recursos disponibles. Los resultados se encuentran a continuación: 
 
 
 **OMP con Llamado Paralelo (optimizado con -O3):**
-- 0:02.02
-- ~~0:01.90~~ - *a eliminar*
-- 0:01.99
-- 0:01.95
-- 0:02.06 \
-**Speedup:** (23.92/4)/(8.02/4) = 2.9825
+- 0:01.48
+- ~~0:01.62~~ - *a eliminar*
+- 0:01.54
+- 0:01.57
+- 0:01.51 \
+**Speedup:** (23.92/4)/(8.02/4) = 3.9246
 
-Lo cual corresponde a una ganancia de rendimiento de un 198.25%, Lo cual es claramente considerable comparándolo con solo las modificaciones realizadas con OpenMP.
+Lo cual corresponde a una ganancia de rendimiento de un 292.46%, Lo cual es un incremento claramente considerable comparándolo con solo las modificaciones realizadas con OpenMP.
 
 ## Conclusión
 
@@ -50,6 +50,8 @@ Tal como se comentó anteriormente, a pesar de los cambios realizados con OpenMP
 No se logró un incremento considerable sobre el rendimiento ganado, por lo que se optó por buscar formas de paralelizar el llamado de las tareas desde el *shell*.
 
 Dicha optimización o forma de paralelizar permitió un mayor aprovechamiento de los recursos. Ya no existe la cola que obliga a esperar a que operaciones como la lectura y escritura de los archivos fueran realizadas.
+
+Adicionalmente, cabe reconocerse que la implementación de OpenMP fue muy cautelosa y se procuró mantener un valor de hilos y un tipo de *scheduling* acorde al tipo de operaciones a utilizar en cada de sección paralela. En el caso de *aplicarFiltro* se optó por un *scheduling* *dinámico* mientras que en *calcularSumaPixeles* se dejó uno *estático*, con el fin de mantener la correctitud procurando el mayor uso de los recursos en el menor tiempo posible.
 
 # Procesamiento de imágenes
 
