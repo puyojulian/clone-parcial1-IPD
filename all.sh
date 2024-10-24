@@ -7,9 +7,38 @@
 #
 # Autor: John Sanabria - john.sanabria@correounivalle.edu.co
 # Fecha: 2024-08-22
+# Modificado: Julian Ernesto Puyo Mora - julian.puyo@correounivalle.edu.co
 #
-INPUT_PNG="image.png"
-TEMP_FILE="image.bin"
-python3 fromPNG2Bin.py ${INPUT_PNG}
-./main ${TEMP_FILE}
-python3 fromBin2PNG.py ${TEMP_FILE}.new
+
+# # Versión Original
+# INPUT_PNG="image.png"
+# TEMP_FILE="image.bin"
+# python3 fromPNG2Bin.py ${INPUT_PNG}
+# ./main ${TEMP_FILE}
+# python3 fromBin2PNG.py ${TEMP_FILE}.new
+
+# # Itera sobre las 18 imágenes de manera secuencial.
+# for i in {1..18}
+# do
+#     INPUT_JPG="images/image${i}.jpg"
+#     TEMP_FILE="images/image${i}.bin"
+    
+#     python3 fromPNG2Bin.py "${INPUT_JPG}"
+#     ./main "${TEMP_FILE}"
+#     python3 fromBin2PNG.py "${TEMP_FILE}.new"
+# done
+
+# Itera sobre las 18 imágenes de manera paralela, según la cantidad de núcleos lógicos.
+for i in {1..18}
+do
+    (
+        python3 fromPNG2Bin.py "images/image${i}.jpg"
+        ./main "images/image${i}.bin"
+        python3 fromBin2PNG.py "images/image${i}.bin.new"
+    ) &
+    # Limit the number of parallel jobs
+    if (( $(jobs | wc -l) >= $(nproc) )); then
+        wait -n  # Wait for any job to finish
+    fi
+done
+wait
