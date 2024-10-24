@@ -7,4 +7,4 @@ exe:
 	time ./all.sh
 
 clean:
-	rm -f main *.bin*
+	rm -f main images/*.bin* && rm -f main *.bin*
