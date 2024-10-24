@@ -114,6 +114,8 @@ void aplicarFiltro(int *imagen, int *imagenProcesada, int width, int height) {
 
 int calcularSumaPixeles(int *imagen, int width, int height) {
     int suma = 0;
+    // Causa un leve overhead, no es beneficioso en términos de mejora en rendimiento.
+    // #pragma omp parallel for reduction(+:suma) schedule(static)
     for (int i = 0; i < width * height; i++) {
         suma += imagen[i];
     }

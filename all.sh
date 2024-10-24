@@ -36,9 +36,9 @@ do
         ./main "images/image${i}.bin"
         python3 fromBin2PNG.py "images/image${i}.bin.new"
     ) &
-    # Limit the number of parallel jobs
+    # Limita el número de trabajos paralelos
     if (( $(jobs | wc -l) >= $(nproc) )); then
-        wait -n  # Wait for any job to finish
+        wait -n  # Espera a que cualquier trabajo termine.
     fi
 done
 wait
