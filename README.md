@@ -1,7 +1,7 @@
 
 > **NOTA:** Este es repositorio es una copia del repositorio: [paralelas-distribuidas-1er-parcial](https://gitlab.com/john.sanabria/paralelas-distribuidas-1er-parcial.git/) del usuario (Maestro): [@john.sanabria](https://gitlab.com/john.sanabria), con el fin de resolver el primer examen parcial del curso Infraestructuras Paralelas y Distribuidas de la Universidad del Valle.
 
-# Conclusiones y Resultados: Implementación Original (*main branch*)
+# Resultados: Implementación Original (*main branch*)
 
 ## Resultados
 
@@ -69,7 +69,7 @@ Dicha optimización o forma de paralelizar permitió un mayor aprovechamiento de
 
 Adicionalmente, cabe reconocerse que la implementación de OpenMP fue muy cautelosa y se procuró mantener un valor de hilos y un tipo de *scheduling* acorde al tipo de operaciones a utilizar en cada de sección paralela. En el caso de *aplicarFiltro* se optó por un *scheduling* *dinámico* mientras que en *calcularSumaPixeles* se dejó uno *estático*, con el fin de mantener la correctitud procurando el mayor uso de los recursos en el menor tiempo posible.
 
-# Conclusiones y Resultados: Implementación Corregida (*feature/image-fix branch*)
+# Resultados: Implementación Corregida (*feature/image-fix branch*)
 
 Luego de revisar el código se notó que la razón por la cual las imágenes no tenían el filtro bien aplicado era porque estaban *"hardcodeadas"* las dimensiones de la imagen, lo cual se pudo corregir, modificando los archivos [fromBin2PNG.py](fromBin2PNG.py) y [fromPNG2Bin.py](fromPNG2Bin.py), así como el archivo [main.c](main.c) para conseguir tal fin. Entonces ya con una lógica capaz de procesar las imágenes según su tamaño, claramente los tiempos de cómputo incrementaron.
 
@@ -136,6 +136,24 @@ wait
 ```
 
 En ambos casos, al implementar los mismas directivas de OMP con 32 hilos, perdemos rendimiento. Sigue habiendo un beneficio notorio al hacer los llamados de manera asíncrona desde *Bash*.
+
+Aunque se puede considerar que los resultados anteriores son invalidados por los más recientes, se conservan debido a su valides bajo la premisa de que los threads hicieron el mismo trabajo y aunque estuviera incorrecto respecto a la salida esperada era el mismo y sí hubo un *speedup* que notar.
+
+# Conclusión final
+
+La implementación corregida en la rama *feature/image-fix* ha permitido procesar imágenes de diferentes tamaños, eliminando las limitaciones causadas por dimensiones fijas (*hardcoded*) en los archivos ``fromBin2PNG.py``, ``fromPNG2Bin.py`` y ``main.c``. Sin embargo, esto incrementó los tiempos de procesamiento, como era esperado, dado el aumento en la carga computacional de manejar dimensiones variables.
+
+Los resultados comparativos entre los llamados secuenciales y paralelos en Bash, con y sin directivas de OpenMP, muestran claramente que el enfoque de paralelismo en Bash supera al paralelismo aplicado con OpenMP en este contexto. Al utilizar 32 hilos con OpenMP, observamos una disminución en el rendimiento en comparación con la ejecución sin paralelización en OpenMP, tanto en la versión secuencial como en la paralela desde Bash.
+
+Esto puede deberse a varios factores clave:
+
+- **Sobrecarga de Hilos en OpenMP:** Al utilizar 32 hilos para cada imagen, la sobrecarga de gestión de hilos en cada ejecución de main.c parece superar las ventajas del paralelismo, especialmente porque el procesamiento en cada imagen es relativamente pequeño en comparación con el tiempo de administración de hilos.
+
+- **Eficiencia del Paralelismo en Bash:** El paralelismo en Bash, que distribuye las tareas de manera asincrónica a nivel de procesos, aprovecha de manera más efectiva los recursos del sistema. Esto es particularmente beneficioso para tareas de I/O como la conversión entre formatos de imagen, donde la ejecución asíncrona permite avanzar en otras tareas mientras se realiza la entrada/salida, evitando cuellos de botella y maximizando el uso de CPU.
+
+- **Carga de Entrada y Salida (I/O):** Dado que el proceso involucra varias operaciones de conversión y lectura/escritura de archivos, el beneficio del paralelismo de procesamiento es limitado. Gran parte del tiempo total de ejecución está ocupado en operaciones de I/O, que no se benefician del paralelismo de cómputo.
+
+- **Relevancia de los Resultados Iniciales:** Aunque los resultados iniciales fueron obtenidos con una implementación incorrecta (por las dimensiones fijas), estos resultados son válidos en el sentido de que ilustraron cómo el paralelismo mejora el rendimiento en operaciones homogéneas. Sin embargo, al corregir las dimensiones de la imagen y ejecutar la versión con el procesamiento completo, se demuestra que el paralelismo basado en OpenMP no aporta una mejora significativa, y en cambio, el enfoque paralelo en Bash resulta más adecuado para la tarea.
 
 # Procesamiento de imágenes
 
