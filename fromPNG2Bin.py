@@ -1,21 +1,29 @@
+# fromPNG2Bin.py
 from PIL import Image
 import numpy as np
 import sys
-import os
+import struct
 
-if len(sys.argv) != 2:
-  print("Proveer el nombre de un archivo PNG")
-  sys.exit(1)
+def convert_to_binary(input_path):
+    # Abrir y convertir la imagen a escala de grises
+    img = Image.open(input_path).convert('L')
+    # Obtener dimensiones
+    width, height = img.size
+    
+    # Convertir a array de numpy
+    img_array = np.array(img, dtype=np.int32)
+    
+    # Crear el archivo binario
+    output_path = input_path.rsplit('.', 1)[0] + '.bin'
+    with open(output_path, 'wb') as f:
+        # Escribir las dimensiones al inicio del archivo (8 bytes en total)
+        f.write(struct.pack('II', width, height))
+        # Escribir los datos de la imagen
+        img_array.tofile(f)
 
-IMAGE_FILE = sys.argv[1]
-FILENAME = os.path.splitext(IMAGE_FILE)[0]
-OUTPUT_FILE = f"{FILENAME}.bin"
-
-# Cargar la imagen y convertirla a escala de grises
-imagen = Image.open(IMAGE_FILE).convert('L')  # 'L' convierte a escala de grises
-
-# Convertir la imagen a un array de NumPy
-array_imagen = np.array(imagen)
-
-# Guardar el array como un archivo binario
-array_imagen.astype('int32').tofile(OUTPUT_FILE)
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        print("Uso: python3 fromPNG2Bin.py <imagen.jpg/png>")
+        sys.exit(1)
+    
+    convert_to_binary(sys.argv[1])

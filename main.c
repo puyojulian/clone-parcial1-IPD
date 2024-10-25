@@ -3,103 +3,137 @@
 #include <string.h>
 #include <omp.h>
 
-// Funciones placeholder para la carga y guardado de imágenes
-void cargarImagen(int *imagen, int width, int height);
-void guardarImagen(int *imagen, int width, int height);
+// Estructura para el encabezado de la imagen
+typedef struct {
+    int width;
+    int height;
+} ImageHeader;
 
-// Función para aplicar un filtro simple
+// Declaraciones de funciones corregidas
+void cargarImagen(int *imagen, int *width, int *height, const char *filename);
+void guardarImagen(int *imagen, int width, int height, const char *filename);
 void aplicarFiltro(int *imagen, int *imagenProcesada, int width, int height);
-
-// Función para calcular la suma de los píxeles (como una estadística)
 int calcularSumaPixeles(int *imagen, int width, int height);
 
-char *filename;
-
 int main(int argc, char* argv[]) {
-    int width = 1024, height = 1024;
-    int *imagen = (int *)malloc(width * height * sizeof(int));
-    int *imagenProcesada = (int *)malloc(width * height * sizeof(int));
-
     if (argc != 2) {
-      fprintf(stderr, "Dar un nombre de archivo de entrada");
-      exit(1);
+        fprintf(stderr, "Dar un nombre de archivo de entrada\n");
+        exit(1);
     }
 
-    // Deminimos la cantidad de hilos a usar en cada región paralela.
-    // omp_set_num_threads(16); // ~15% de mejora en rendimiento
-    omp_set_num_threads(32); // ~18% de mejora en rendimiento
-    // omp_set_num_threads(100); // ~16% de mejora en rendimiento
+    const char *filename = argv[1];
+    int width, height;
+    
+    // Primero leemos las dimensiones
+    FILE *archivo = fopen(filename, "rb");
+    if (archivo == NULL) {
+        perror("Error al abrir el archivo");
+        exit(1);
+    }
+    
+    // Leer las dimensiones
+    if (fread(&width, sizeof(int), 1, archivo) != 1 ||
+        fread(&height, sizeof(int), 1, archivo) != 1) {
+        perror("Error al leer las dimensiones");
+        fclose(archivo);
+        exit(1);
+    }
+    fclose(archivo);
 
-    filename = argv[1];
-    // Cargar la imagen (no paralelizable)
-    cargarImagen(imagen, width, height);
+    // Ahora podemos asignar memoria con las dimensiones correctas
+    int *imagen = (int *)malloc(width * height * sizeof(int));
+    int *imagenProcesada = (int *)malloc(width * height * sizeof(int));
+    
+    if (imagen == NULL || imagenProcesada == NULL) {
+        perror("Error al asignar memoria");
+        exit(1);
+    }
 
-    // Aplicar filtro (paralelizable)
+    omp_set_num_threads(32);
+
+    // Cargar la imagen con el filename
+    cargarImagen(imagen, &width, &height, filename);
+
+    // Aplicar filtro
     aplicarFiltro(imagen, imagenProcesada, width, height);
 
-    // Calcular suma de píxeles (parte paralelizable)
+    // Calcular suma de píxeles
     int sumaPixeles = calcularSumaPixeles(imagenProcesada, width, height);
-
     printf("Suma de píxeles: %d\n", sumaPixeles);
 
-    // Guardar la imagen (no paralelizable)
-    guardarImagen(imagenProcesada, width, height);
+    // Guardar la imagen con el filename
+    guardarImagen(imagenProcesada, width, height, filename);
 
     free(imagen);
     free(imagenProcesada);
     return 0;
 }
 
-// Carga una imagen desde un archivo binario
-void cargarImagen(int *imagen, int width, int height) {
+void cargarImagen(int *imagen, int *width, int *height, const char *filename) {
     FILE *archivo = fopen(filename, "rb");
     if (archivo == NULL) {
         perror("Error al abrir el archivo para cargar la imagen");
-        return;
+        exit(1);
     }
 
-    size_t elementosLeidos = fread(imagen, sizeof(int), width * height, archivo);
-    if (elementosLeidos != width * height) {
+    // Leer las dimensiones del archivo (8 bytes en total)
+    if (fread(width, sizeof(int), 1, archivo) != 1 ||
+        fread(height, sizeof(int), 1, archivo) != 1) {
+        perror("Error al leer las dimensiones de la imagen");
+        fclose(archivo);
+        exit(1);
+    }
+
+    // Leer los datos de la imagen
+    size_t elementosLeidos = fread(imagen, sizeof(int), (*width) * (*height), archivo);
+    if (elementosLeidos != (*width) * (*height)) {
         perror("Error al leer la imagen desde el archivo");
+        fclose(archivo);
+        exit(1);
     }
 
     fclose(archivo);
 }
 
-// Guarda una imagen en un archivo binario
-void guardarImagen(int *imagen, int width, int height) {
-    char *output_filename;
-
-    output_filename = (char*)malloc(sizeof(char)*(strlen(filename) + 4));
-    sprintf(output_filename,"%s.new",filename);
+void guardarImagen(int *imagen, int width, int height, const char *filename) {
+    char *output_filename = (char*)malloc(strlen(filename) + 5); // +5 para ".new\0"
+    sprintf(output_filename, "%s.new", filename);
+    
     FILE *archivo = fopen(output_filename, "wb");
     if (archivo == NULL) {
-        perror("Error al abrir el archivo para guardar la imagen");
+        perror("Error al abrir el archivo para guardar");
+        free(output_filename);
         return;
     }
 
-    size_t elementosEscritos = fwrite(imagen, sizeof(int), width * height, archivo);
-    if (elementosEscritos != width * height) {
-        perror("Error al escribir la imagen en el archivo");
+    // Escribir el encabezado
+    ImageHeader header = {width, height};
+    if (fwrite(&header, sizeof(ImageHeader), 1, archivo) != 1) {
+        perror("Error al escribir el encabezado");
+        fclose(archivo);
+        free(output_filename);
+        return;
+    }
+
+    // Escribir los datos de la imagen
+    if (fwrite(imagen, sizeof(int), width * height, archivo) != width * height) {
+        perror("Error al escribir los datos de la imagen");
     }
 
     fclose(archivo);
+    free(output_filename);
 }
-
 
 void aplicarFiltro(int *imagen, int *imagenProcesada, int width, int height) {
     int Gx[3][3] = {{-1, 0, 1}, {-2, 0, 2}, {-1, 0, 1}};
     int Gy[3][3] = {{-1, -2, -1}, {0, 0, 0}, {1, 2, 1}};
 
-    // Paralelizamos de manera sencilla haciéndo uso de los hilos indicados por el llamado al api desde main().
-    // Aplico collapse con la intención de paralelizar ambos bucles externos y obtener mejor distribución del trabajo.
-    #pragma omp parallel for shared(imagen, imagenProcesada, width, height, Gx, Gy) schedule(dynamic)
+    // #pragma omp parallel for shared(imagen, imagenProcesada, width, height, Gx, Gy) schedule(dynamic)
     for (int y = 1; y < height - 1; y++) {
         for (int x = 1; x < width - 1; x++) {
             int sumX = 0;
             int sumY = 0;
 
-            // Aplicar máscaras de Sobel (Gx y Gy)
             for (int ky = -1; ky <= 1; ky++) {
                 for (int kx = -1; kx <= 1; kx++) {
                     sumX += imagen[(y + ky) * width + (x + kx)] * Gx[ky + 1][kx + 1];
@@ -107,17 +141,15 @@ void aplicarFiltro(int *imagen, int *imagenProcesada, int width, int height) {
                 }
             }
 
-            // Calcular magnitud del gradiente
             int magnitude = abs(sumX) + abs(sumY);
-            imagenProcesada[y * width + x] = (magnitude > 255) ? 255 : magnitude;  // Normalizar a 8 bits
+            imagenProcesada[y * width + x] = (magnitude > 255) ? 255 : magnitude;
         }
     }
 }
 
 int calcularSumaPixeles(int *imagen, int width, int height) {
     int suma = 0;
-    // Causa un leve overhead; empeora el rendimiento independientemente del número de hilos.
-    #pragma omp parallel for reduction(+:suma) schedule(static)
+    // #pragma omp parallel for reduction(+:suma) schedule(static)
     for (int i = 0; i < width * height; i++) {
         suma += imagen[i];
     }

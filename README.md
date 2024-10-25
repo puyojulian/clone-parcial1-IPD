@@ -1,7 +1,7 @@
 
 > **NOTA:** Este es repositorio es una copia del repositorio: [paralelas-distribuidas-1er-parcial](https://gitlab.com/john.sanabria/paralelas-distribuidas-1er-parcial.git/) del usuario (Maestro): [@john.sanabria](https://gitlab.com/john.sanabria), con el fin de resolver el primer examen parcial del curso Infraestructuras Paralelas y Distribuidas de la Universidad del Valle.
 
-# Conclusiones y Resultados: 
+# Conclusiones y Resultados: Implementación Original (*main branch*)
 
 ## Resultados
 
@@ -68,6 +68,74 @@ No se logró un incremento considerable sobre el rendimiento ganado, por lo que 
 Dicha optimización o forma de paralelizar permitió un mayor aprovechamiento de los recursos. Ya no existe la cola que obliga a esperar a que operaciones como la lectura y escritura de los archivos fueran realizadas.
 
 Adicionalmente, cabe reconocerse que la implementación de OpenMP fue muy cautelosa y se procuró mantener un valor de hilos y un tipo de *scheduling* acorde al tipo de operaciones a utilizar en cada de sección paralela. En el caso de *aplicarFiltro* se optó por un *scheduling* *dinámico* mientras que en *calcularSumaPixeles* se dejó uno *estático*, con el fin de mantener la correctitud procurando el mayor uso de los recursos en el menor tiempo posible.
+
+# Conclusiones y Resultados: Implementación Corregida (*feature/image-fix branch*)
+
+Luego de revisar el código se notó que la razón por la cual las imágenes no tenían el filtro bien aplicado era porque estaban *"hardcodeadas"* las dimensiones de la imagen, lo cual se pudo corregir, modificando los archivos [fromBin2PNG.py](fromBin2PNG.py) y [fromPNG2Bin.py](fromPNG2Bin.py), así como el archivo [main.c](main.c) para conseguir tal fin. Entonces ya con una lógica capaz de procesar las imágenes según su tamaño, claramente los tiempos de cómputo incrementaron.
+
+Se tuvieron los siguientes resultados (en *minutos:segundos*):
+
+**Llamado Bash Paralelo sin OMP**
+- 0:03.07
+- 0:03.28
+- 0:03.22
+- 0:03.12
+- 0:03.18
+
+**Llamado Bash Paralelo con OMP**
+- 0:03.52
+- 0:03.18
+- 0:03.47
+- 0:03.18
+- 0:03.19
+
+**Llamado Bash Secuencial sin OMP**
+- 0:11.48
+- 0:11.47
+- 0:11.42
+- 0:11.66
+- 0:11.59
+
+**Llamado Bash Secuencial con OMP**
+- 0:11.86
+- 0:11.84
+- 0:11.70
+- 0:11.75
+- 0:11.76 
+
+A simple vista logramos notar que no va a haber un speedup a favor (*speedup* <= 1), cada vez que pasamos a una versión con OMP perdemos rendimiento, y por versión me refiero al tipo de llamado de los programas desde *Bash*.
+
+Si fue en secuencial:
+
+```BASH
+for i in {1..18}
+do
+    INPUT_JPG="images/image${i}.jpg"
+    TEMP_FILE="images/image${i}.bin"
+    
+    python3 fromPNG2Bin.py "${INPUT_JPG}"
+    ./main "${TEMP_FILE}"
+    python3 fromBin2PNG.py "${TEMP_FILE}.new"
+```
+
+O si fue en paralelo:
+
+```BASH
+for i in {1..18}
+do
+    (
+        python3 fromPNG2Bin.py "images/image${i}.jpg"
+        ./main "images/image${i}.bin"
+        python3 fromBin2PNG.py "images/image${i}.bin.new"
+    ) &
+    if (( $(jobs | wc -l) >= $(nproc) )); then
+        wait -n
+    fi
+done
+wait
+```
+
+En ambos casos, al implementar los mismas directivas de OMP con 32 hilos, perdemos rendimiento. Sigue habiendo un beneficio notorio al hacer los llamados de manera asíncrona desde *Bash*.
 
 # Procesamiento de imágenes
 

@@ -1,24 +1,34 @@
-import numpy as np
+# fromBin2PNG.py
 from PIL import Image
+import numpy as np
 import sys
-import os
+import struct
 
+def convert_to_image(input_path):
+    # Leer el archivo binario
+    with open(input_path, 'rb') as f:
+        # Leer las dimensiones del encabezado (8 bytes)
+        width, height = struct.unpack('II', f.read(8))
+        
+        # Leer los datos de la imagen
+        img_array = np.fromfile(f, dtype=np.int32)
+        
+        # Reshape el array según las dimensiones
+        img_array = img_array.reshape((height, width))
+        
+        # Normalizar valores si es necesario (0-255)
+        img_array = np.clip(img_array, 0, 255).astype(np.uint8)
+        
+        # Crear imagen
+        img = Image.fromarray(img_array)
+        
+        # Guardar imagen
+        output_path = input_path.rsplit('.', 1)[0] + '.png'
+        img.save(output_path)
 
-if len(sys.argv) == 1:
-  print("Dar nombre de archivo")
-  sys.exit(1)
-
-INPUT_FILE = sys.argv[1]
-FILENAME = os.path.splitext(INPUT_FILE)[0]
-OUTPUT_FILE = f"{FILENAME}.PNG"
-
-# Leer el archivo binario y convertirlo a un array de NumPy
-width, height = 1024, 1024  # Asegúrate de que estas dimensiones coincidan con las usadas en el programa C
-array_imagen = np.fromfile(INPUT_FILE, dtype='int32').reshape((height, width))
-
-# Convertir el array a una imagen en escala de grises
-imagen = Image.fromarray(array_imagen.astype('uint8'))
-
-# Guardar la imagen en formato PNG
-imagen.save(OUTPUT_FILE)
-
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        print("Uso: python3 fromBin2PNG.py <imagen.bin>")
+        sys.exit(1)
+    
+    convert_to_image(sys.argv[1])
