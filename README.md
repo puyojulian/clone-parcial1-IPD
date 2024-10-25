@@ -16,7 +16,25 @@ Para comenzar, presento los datos recopilados (tiempos de ejecución en segundos
 - 0:06.16
 - 0:05.98
 
-**OMP con Llamado Secuencial (optimizado con la bandera -O3 al compilar):**
+**OMP con Llamado Secuencial (optimizado con la bandera ```-O3``` al compilar - 16 hilos):**
+- ~~0:05.32~~ - *a eliminar*
+- 0:05.26
+- 0:05.14
+- 0:05.28
+- 0:05.13 \
+**Speedup:** (23.92/4)/(20.81/4) = 1.1494
+
+> El *speedup* se calcula dividiento el tiempo promedio secuencial sobre el tiempo promedio en paralelo. Considérese que cuando hablamos de tiempo de ejecución, entre menos en mejor.
+
+**OMP con Llamado Secuencial (optimizado con ```-O3``` - 32 hilos):**
+- ~~0:05.16~~ - *a eliminar*
+- 0:05.04
+- 0:05.07
+- 0:05.09
+- 0:05.05 \
+**Speedup:** (23.92/4)/(20.25/4) = 1.1812
+
+**OMP con Llamado Secuencial (optimizado con ```-O3``` - 100 hilos):**
 - ~~0:05.26~~ - *a eliminar*
 - 0:05.17
 - 0:05.12
@@ -24,14 +42,12 @@ Para comenzar, presento los datos recopilados (tiempos de ejecución en segundos
 - 0:05.19 \
 **Speedup:** (23.92/4)/(21.03/4) = 1.1600
 
-> El *speedup* se calcula dividiento el tiempo promedio secuencial sobre el tiempo promedio en paralelo. Considérese que cuando hablamos de tiempo de ejecución, entre menos en mejor.
-
-Esto representa una ganancia de rendimiento del 16.00%. Aunque puede parecer menos de lo esperado, hay que tener en cuenta que al tratarse de imágenes estámos muy dependientes de las operaciones de entrada y salida, además que todo el tiempo de ejecución también depende de los tiempos que se tomen [fromBin2PNG.py](fromBin2PNG.py) y [fromPNG2Bin.py](fromPNG2Bin.py) los cuales se ejecutan de manera secuencial. Por lo tanto, encontramos una mejora que no es sustancial y que se puede mejorar si consideramos que el llamado desde la consola o desde nuestro [all.sh](all.sh), podemos realizar el llamado de nuestro programa de manera paralela.
+Lo anterior nos confirma que el punto *dulce* para paralelizar el programa lo encontramos al establecer 32 hilos para la ejecución de cada sección paralela, donde se alcanza una mejora en rendimiento del 18.12%; superior a las ejecuciones con 16 y 100 hilos. Y, aunque puede parecer menos de lo esperado, hay que tener en cuenta que al tratarse de imágenes estámos muy dependientes de las operaciones de entrada y salida, además que todo el tiempo de ejecución también depende de los tiempos que se tomen [fromBin2PNG.py](fromBin2PNG.py) y [fromPNG2Bin.py](fromPNG2Bin.py) los cuales se ejecutan de manera secuencial. Por lo tanto, encontramos una mejora que no es sustancial y que se puede mejorar si consideramos que el llamado desde la consola o desde nuestro [all.sh](all.sh), podemos realizar el llamado de nuestro programa de manera paralela.
 
 > En [all.sh](all.sh) encontrará comentada la implementación original como aquella correspondiente a la prueba anterior (sobre todas las imágenes en *images*), y estará sin comentario aquel script definitivo, el cual hace un llamado en paralelo según los recursos disponibles. Los resultados se encuentran a continuación: 
 
 
-**OMP con Llamado Paralelo (optimizado con -O3):**
+**OMP con Llamado Paralelo (optimizado con -O3 - 100 hilos):**
 - 0:01.48
 - ~~0:01.62~~ - *a eliminar*
 - 0:01.54
@@ -39,7 +55,7 @@ Esto representa una ganancia de rendimiento del 16.00%. Aunque puede parecer men
 - 0:01.51 \
 **Speedup:** (23.92/4)/(8.02/4) = 3.9246
 
-Lo cual corresponde a una ganancia de rendimiento de un 292.46%, Lo cual es un incremento claramente considerable comparándolo con solo las modificaciones realizadas con OpenMP.
+Lo cual corresponde a una ganancia de rendimiento de un 292.46%, Lo cual es un incremento mucho más significativo comparándolo con haber aplicado solo las modificaciones con OpenMP.
 
 ## Conclusión
 

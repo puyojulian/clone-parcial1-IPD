@@ -26,7 +26,9 @@ int main(int argc, char* argv[]) {
     }
 
     // Deminimos la cantidad de hilos a usar en cada región paralela.
-    omp_set_num_threads(100);
+    // omp_set_num_threads(16); // ~15% de mejora en rendimiento
+    omp_set_num_threads(32); // ~18% de mejora en rendimiento
+    // omp_set_num_threads(100); // ~16% de mejora en rendimiento
 
     filename = argv[1];
     // Cargar la imagen (no paralelizable)
