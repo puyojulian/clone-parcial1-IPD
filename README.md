@@ -1,7 +1,7 @@
 
 > **NOTA:** Este es repositorio es una copia del repositorio: [paralelas-distribuidas-1er-parcial](https://gitlab.com/john.sanabria/paralelas-distribuidas-1er-parcial.git/) del usuario (Maestro): [@john.sanabria](https://gitlab.com/john.sanabria), con el fin de resolver el primer examen parcial del curso Infraestructuras Paralelas y Distribuidas de la Universidad del Valle.
 
-# Conclusiones y Resultados: 
+# Resultados: Implementación Original (*main branch*)
 
 ## Resultados
 
@@ -68,6 +68,92 @@ No se logró un incremento considerable sobre el rendimiento ganado, por lo que 
 Dicha optimización o forma de paralelizar permitió un mayor aprovechamiento de los recursos. Ya no existe la cola que obliga a esperar a que operaciones como la lectura y escritura de los archivos fueran realizadas.
 
 Adicionalmente, cabe reconocerse que la implementación de OpenMP fue muy cautelosa y se procuró mantener un valor de hilos y un tipo de *scheduling* acorde al tipo de operaciones a utilizar en cada de sección paralela. En el caso de *aplicarFiltro* se optó por un *scheduling* *dinámico* mientras que en *calcularSumaPixeles* se dejó uno *estático*, con el fin de mantener la correctitud procurando el mayor uso de los recursos en el menor tiempo posible.
+
+# Resultados: Implementación Corregida (*feature/image-fix branch*)
+
+Luego de revisar el código se notó que la razón por la cual las imágenes no tenían el filtro bien aplicado era porque estaban *"hardcodeadas"* las dimensiones de la imagen, lo cual se pudo corregir, modificando los archivos [fromBin2PNG.py](fromBin2PNG.py) y [fromPNG2Bin.py](fromPNG2Bin.py), así como el archivo [main.c](main.c) para conseguir tal fin. Entonces ya con una lógica capaz de procesar las imágenes según su tamaño, claramente los tiempos de cómputo incrementaron.
+
+Se tuvieron los siguientes resultados (en *minutos:segundos*):
+
+**Llamado Bash Paralelo sin OMP**
+- 0:03.07
+- 0:03.28
+- 0:03.22
+- 0:03.12
+- 0:03.18
+
+**Llamado Bash Paralelo con OMP**
+- 0:03.52
+- 0:03.18
+- 0:03.47
+- 0:03.18
+- 0:03.19
+
+**Llamado Bash Secuencial sin OMP**
+- 0:11.48
+- 0:11.47
+- 0:11.42
+- 0:11.66
+- 0:11.59
+
+**Llamado Bash Secuencial con OMP**
+- 0:11.86
+- 0:11.84
+- 0:11.70
+- 0:11.75
+- 0:11.76 
+
+A simple vista logramos notar que no va a haber un speedup a favor (*speedup* <= 1), cada vez que pasamos a una versión con OMP perdemos rendimiento, y por versión me refiero al tipo de llamado de los programas desde *Bash*.
+
+Si fue en secuencial:
+
+```BASH
+for i in {1..18}
+do
+    INPUT_JPG="images/image${i}.jpg"
+    TEMP_FILE="images/image${i}.bin"
+    
+    python3 fromPNG2Bin.py "${INPUT_JPG}"
+    ./main "${TEMP_FILE}"
+    python3 fromBin2PNG.py "${TEMP_FILE}.new"
+```
+
+O si fue en paralelo:
+
+```BASH
+for i in {1..18}
+do
+    (
+        python3 fromPNG2Bin.py "images/image${i}.jpg"
+        ./main "images/image${i}.bin"
+        python3 fromBin2PNG.py "images/image${i}.bin.new"
+    ) &
+    if (( $(jobs | wc -l) >= $(nproc) )); then
+        wait -n
+    fi
+done
+wait
+```
+
+En ambos casos, al implementar los mismas directivas de OMP con 32 hilos, perdemos rendimiento. Sigue habiendo un beneficio notorio al hacer los llamados de manera asíncrona desde *Bash*.
+
+Aunque se puede considerar que los resultados anteriores son invalidados por los más recientes, se conservan debido a su valides bajo la premisa de que los threads hicieron el mismo trabajo y aunque estuviera incorrecto respecto a la salida esperada era el mismo y sí hubo un *speedup* que notar.
+
+# Conclusión final
+
+La implementación corregida en la rama *feature/image-fix* ha permitido procesar imágenes de diferentes tamaños, eliminando las limitaciones causadas por dimensiones fijas (*hardcoded*) en los archivos ``fromBin2PNG.py``, ``fromPNG2Bin.py`` y ``main.c``. Sin embargo, esto incrementó los tiempos de procesamiento, como era esperado, dado el aumento en la carga computacional de manejar dimensiones variables.
+
+Los resultados comparativos entre los llamados secuenciales y paralelos en Bash, con y sin directivas de OpenMP, muestran claramente que el enfoque de paralelismo en Bash supera al paralelismo aplicado con OpenMP en este contexto. Al utilizar 32 hilos con OpenMP, observamos una disminución en el rendimiento en comparación con la ejecución sin paralelización en OpenMP, tanto en la versión secuencial como en la paralela desde Bash.
+
+Esto puede deberse a varios factores clave:
+
+- **Sobrecarga de Hilos en OpenMP:** Al utilizar 32 hilos para cada imagen, la sobrecarga de gestión de hilos en cada ejecución de main.c parece superar las ventajas del paralelismo, especialmente porque el procesamiento en cada imagen es relativamente pequeño en comparación con el tiempo de administración de hilos.
+
+- **Eficiencia del Paralelismo en Bash:** El paralelismo en Bash, que distribuye las tareas de manera asincrónica a nivel de procesos, aprovecha de manera más efectiva los recursos del sistema. Esto es particularmente beneficioso para tareas de I/O como la conversión entre formatos de imagen, donde la ejecución asíncrona permite avanzar en otras tareas mientras se realiza la entrada/salida, evitando cuellos de botella y maximizando el uso de CPU.
+
+- **Carga de Entrada y Salida (I/O):** Dado que el proceso involucra varias operaciones de conversión y lectura/escritura de archivos, el beneficio del paralelismo de procesamiento es limitado. Gran parte del tiempo total de ejecución está ocupado en operaciones de I/O, que no se benefician del paralelismo de cómputo.
+
+- **Relevancia de los Resultados Iniciales:** Aunque los resultados iniciales fueron obtenidos con una implementación incorrecta (por las dimensiones fijas), estos resultados son válidos en el sentido de que ilustraron cómo el paralelismo mejora el rendimiento en operaciones homogéneas. Sin embargo, al corregir las dimensiones de la imagen y ejecutar la versión con el procesamiento completo, se demuestra que el paralelismo basado en OpenMP no aporta una mejora significativa, y en cambio, el enfoque paralelo en Bash resulta más adecuado para la tarea.
 
 # Procesamiento de imágenes
 
