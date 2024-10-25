@@ -23,6 +23,7 @@ Para comenzar, presento los datos recopilados (tiempos de ejecución en segundos
 - 0:05.28
 - 0:05.13 \
 **Speedup:** (23.92/4)/(20.81/4) = 1.1494
+**Eficiencia:** 1.1494/16 = 0.0718
 
 > El *speedup* se calcula dividiento el tiempo promedio secuencial sobre el tiempo promedio en paralelo. Considérese que cuando hablamos de tiempo de ejecución, entre menos en mejor.
 
@@ -33,6 +34,7 @@ Para comenzar, presento los datos recopilados (tiempos de ejecución en segundos
 - 0:05.09
 - 0:05.05 \
 **Speedup:** (23.92/4)/(20.25/4) = 1.1812
+**Eficiencia:** 1.1812/32 = 0.0369
 
 **OMP con Llamado Secuencial (optimizado con ```-O3``` - 100 hilos):**
 - ~~0:05.26~~ - *a eliminar*
@@ -41,8 +43,11 @@ Para comenzar, presento los datos recopilados (tiempos de ejecución en segundos
 - 0:05.14
 - 0:05.19 \
 **Speedup:** (23.92/4)/(21.03/4) = 1.1600
+**Eficiencia:** 1.1600/100 = 0.0116
 
-Lo anterior nos confirma que el punto *dulce* para paralelizar el programa lo encontramos al establecer 32 hilos para la ejecución de cada sección paralela, donde se alcanza una mejora en rendimiento del 18.12%; superior a las ejecuciones con 16 y 100 hilos. Y, aunque puede parecer menos de lo esperado, hay que tener en cuenta que al tratarse de imágenes estámos muy dependientes de las operaciones de entrada y salida, además que todo el tiempo de ejecución también depende de los tiempos que se tomen [fromBin2PNG.py](fromBin2PNG.py) y [fromPNG2Bin.py](fromPNG2Bin.py) los cuales se ejecutan de manera secuencial. Por lo tanto, encontramos una mejora que no es sustancial y que se puede mejorar si consideramos que el llamado desde la consola o desde nuestro [all.sh](all.sh), podemos realizar el llamado de nuestro programa de manera paralela.
+> Nótese como la eficiencia disminuye considerablemente a mientras que el *speedup* aumenta muy poco. Al duplicar el número de hilos se disminuyó la eficiencia casi a la mitad.
+
+Lo anterior nos confirma que el punto *dulce* para paralelizar el programa lo encontramos al establecer 32 hilos para la ejecución de cada sección paralela, donde se alcanza una mejora en rendimiento del 18.12% (sin tener en cuenta la eficiencia); superior a las ejecuciones con 16 y 100 hilos. Y, aunque puede parecer menos de lo esperado, hay que tener en cuenta que al tratarse de imágenes estámos muy dependientes de las operaciones de entrada y salida, además que todo el tiempo de ejecución también depende de los tiempos que se tomen [fromBin2PNG.py](fromBin2PNG.py) y [fromPNG2Bin.py](fromPNG2Bin.py) los cuales se ejecutan de manera secuencial. Por lo tanto, encontramos una mejora que no es sustancial y que se puede mejorar si consideramos que el llamado desde la consola o desde nuestro [all.sh](all.sh), podemos realizar el llamado de nuestro programa de manera paralela.
 
 > En [all.sh](all.sh) encontrará comentada la implementación original como aquella correspondiente a la prueba anterior (sobre todas las imágenes en *images*), y estará sin comentario aquel script definitivo, el cual hace un llamado en paralelo según los recursos disponibles. Los resultados se encuentran a continuación: 
 
